@@ -3,12 +3,7 @@
 #include <string.h>
 #include <pkg.h>
 
-struct dep {
-	const char *name;
-	struct dep *parent;
-	struct dep *child;
-	struct dep *next;
-};
+unsigned flags;
 
 static void usage(const char *progname)
 {
@@ -26,18 +21,17 @@ struct pkg *find_pkg(struct pkgdb *db, const char *pkgname)
 		return NULL;
 	}
 
-	while ((ret = pkgdb_it_next(it, &pkg, PKG_LOAD_RDEPS)) == EPKG_OK) {
+	while ((ret = pkgdb_it_next(it, &pkg, flags)) == EPKG_OK) {
 		return pkg;
 	}
 	return NULL;
 }
 
-static int get_rdeps(int level, struct pkgdb *db, const char *pkgname, struct dep *rdep)
+static int get_deps(int level, int (*depper)(struct pkg *, struct pkg_dep **), struct pkgdb *db, const char *pkgname)
 {
 	const char *name;
 	struct pkg_dep *req = NULL;
 	struct pkg *pkg;
-	struct dep dep;
 	int indent;
 	int depcount = 0;
 
@@ -46,19 +40,32 @@ static int get_rdeps(int level, struct pkgdb *db, const char *pkgname, struct de
 		return -1;
 	}
 
-	while (pkg_rdeps(pkg, &req) == EPKG_OK) {
-		dep.name = pkg_dep_name(req);
-		dep.parent = rdep;
+	while (depper(pkg, &req) == EPKG_OK) {
+		name = pkg_dep_name(req);
 		indent = level;
 		while (indent > 0) {
 			printf("-");
 			indent--;
 		}
-		printf("> %s\n", dep.name);
+		printf("> %s\n", name);
 		depcount++;
-		depcount += get_rdeps(level + 1, db, dep.name, &dep);
+		depcount += get_deps(level + 1, depper, db, name);
 	}
 	return depcount;
+}
+
+const char *parse_args(int argc, char **argv)
+{
+	int i = 1;
+	while (i < argc) {
+		if (!strncmp(argv[i], "-r", 2)) {
+			flags = PKG_LOAD_RDEPS;
+		} else {
+			return argv[i];
+		}
+		i++;
+	}
+	usage(argv[0]);
 }
 
 int main(int argc, char **argv)
@@ -66,20 +73,17 @@ int main(int argc, char **argv)
 	struct pkgdb *db = NULL;
 	struct pkgdb_it *it = NULL;
 	struct pkg *pkg = NULL;
-	struct dep rdep;
 	char *conffile = NULL;
 	char *reposdir = NULL;
 	int ret;
-	char *pkgname;
-	const char *name;
+	const char *pkgname;
+
+	flags = PKG_LOAD_DEPS;
 
 	pkg_init(conffile, reposdir);
 
-	if (argc > 1) {
-		pkgname = argv[1];
-	} else {
-		usage(argv[0]);
-	}
+	pkgname = parse_args(argc, argv);
+
 	ret = pkgdb_access(PKGDB_MODE_READ, PKGDB_DB_LOCAL);
 	ret = pkgdb_open(&db, PKGDB_DEFAULT);
 	if (pkgdb_obtain_lock(db, PKGDB_LOCK_READONLY) != EPKG_OK) {
@@ -87,9 +91,13 @@ int main(int argc, char **argv)
 		printf("Failed to get lock\n");
 	}
 
-	rdep.name = pkgname;
-	if (!get_rdeps(1, db, pkgname, &rdep))
-		printf("Nothing depends on %s\n", pkgname);
+	if (flags == PKG_LOAD_RDEPS) {
+		if (!get_deps(1, &pkg_rdeps, db, pkgname))
+			printf("Nothing depends on %s\n", pkgname);
+	} else {
+		if (!get_deps(1, &pkg_deps, db, pkgname))
+			printf("%s depends on nothing\n", pkgname);
+	}
 
 	pkgdb_it_free(it);
 	pkgdb_release_lock(db, PKGDB_LOCK_READONLY);
