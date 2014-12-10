@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	printf("%s", pkgname);
 	if (flags == PKG_LOAD_RDEPS) {
 		if (!get_deps(1, &pkg_rdeps, db, pkgname))
-			printf(" has no dependencies", pkgname);
+			printf(" has no reverse dependencies", pkgname);
 	} else {
 		if (!get_deps(1, &pkg_deps, db, pkgname))
 			printf(" depends on nothing", pkgname);
