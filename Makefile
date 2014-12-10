@@ -1,31 +1,17 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
+.include <bsd.own.mk>
 
-CFLAGS = -ggdb
-INCLUDES += -I/usr/local/include
-LDFLAGS += -L/usr/local/lib -lpkg
+PREFIX?=	/usr/local
+LIBDIR=		${PREFIX}/lib/pkg/commands
+SHLIB_DIR?=	${LIBDIR}/
+SHLIB_NAME?=	${PLUGIN_NAME}.so
 
-COMPILE = $(CC) -std=gnu99 $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
-LINK = $(CC) $(CFLAGS)
-INSTALL = /usr/bin/install
-PREFIX = /usr/local
-BINPATH = $(PREFIX)/bin
-DEPS =
-OBJ = main.o
+PLUGIN_NAME=	rdeps
+SRCS=		rdeps.c
 
-%.o: %.c $(DEPS)
-	$(COMPILE) -c -o $@ $<
+PKGFLAGS!=	pkgconf --cflags pkg
+CFLAGS+=	${PKGFLAGS}
 
-all: pkgdep
+beforeinstall:
+	${INSTALL} -d ${LIBDIR}
 
-pkgdep: $(OBJ)
-	$(LINK) -o $@ $^ $(LDFLAGS)
-
-install: pkgdep
-	/usr/bin/install -m 755 pkgdep $(BINPATH)
-
-delete:
-	rm -f $(BINPATH)/pkgdep
-
-clean:
-	/bin/rm -f pkgdep *.o
+.include <bsd.lib.mk>
