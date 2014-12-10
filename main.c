@@ -36,18 +36,19 @@ static int get_deps(int level, int (*depper)(struct pkg *, struct pkg_dep **), s
 	int depcount = 0;
 
 	if ((pkg = find_pkg(db, pkgname)) == NULL) {
-		printf("Could not find package with name: %s\n", pkgname);
+		printf("\nCould not find package with name: %s\n", pkgname);
 		return -1;
 	}
 
 	while (depper(pkg, &req) == EPKG_OK) {
 		name = pkg_dep_name(req);
 		indent = level;
+		printf("\n");
 		while (indent > 0) {
 			printf("-");
 			indent--;
 		}
-		printf("> %s\n", name);
+		printf("> %s", name);
 		depcount++;
 		depcount += get_deps(level + 1, depper, db, name);
 	}
@@ -91,13 +92,15 @@ int main(int argc, char **argv)
 		printf("Failed to get lock\n");
 	}
 
+	printf("%s", pkgname);
 	if (flags == PKG_LOAD_RDEPS) {
 		if (!get_deps(1, &pkg_rdeps, db, pkgname))
-			printf("Nothing depends on %s\n", pkgname);
+			printf(" has no dependencies", pkgname);
 	} else {
 		if (!get_deps(1, &pkg_deps, db, pkgname))
-			printf("%s depends on nothing\n", pkgname);
+			printf(" depends on nothing", pkgname);
 	}
+	printf("\n");
 
 	pkgdb_it_free(it);
 	pkgdb_release_lock(db, PKGDB_LOCK_READONLY);
