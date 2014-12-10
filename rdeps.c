@@ -32,7 +32,7 @@ int pkg_plugin_shutdown(void)
 
 static int plugin_mystats_usage(void)
 {
-	fprintf(stderr, "usage: pkg %s\n\n", myname);
+	fprintf(stderr, "usage: pkg %s <pkg-name>\n\n", myname);
 	fprintf(stderr, "%s\n", plugdesc);
 	return EX_USAGE;
 }
@@ -107,7 +107,7 @@ static int plugin_rdeps_callback(int argc, char **argv)
 	return EPKG_OK;
 }
 
-int pkg_register_cmd(const char **name, const char **desc,
+int pkg_register_cmd(int i, const char **name, const char **desc,
 		     int (**exec)(int argc, char **argv))
 {
 	*name = myname;
@@ -115,4 +115,9 @@ int pkg_register_cmd(const char **name, const char **desc,
 	*exec = plugin_rdeps_callback;
 
 	return (EPKG_OK);
+}
+
+int pkg_register_cmd_count(void)
+{
+	return 1;
 }
