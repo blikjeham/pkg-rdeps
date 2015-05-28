@@ -37,11 +37,10 @@ static int plugin_mystats_usage(void)
 	return EX_USAGE;
 }
 
-static void print_indent(int level)
+static void print_indent(uint level, char c)
 {
-	int indent = level;
-	while (indent-- > 0) {
-		printf("-");
+	while (level--) {
+		putchar(c);
 	}
 }
 
@@ -58,7 +57,7 @@ static struct pkg *find_pkg(struct pkgdb *db, const char *pkgname)
 	return NULL;
 }
 
-static int get_rdeps(int level, struct pkgdb *db, const char *pkgname)
+static int get_rdeps(uint level, struct pkgdb *db, const char *pkgname)
 {
 	struct pkg *pkg;
 	struct pkg_dep *req = NULL;
@@ -72,7 +71,7 @@ static int get_rdeps(int level, struct pkgdb *db, const char *pkgname)
 
 	while (pkg_rdeps(pkg, &req) == EPKG_OK) {
 		name = pkg_dep_name(req);
-		print_indent(level);
+		print_indent(level, '-');
 		printf("> %s\n", name);
 		count++;
 		count += get_rdeps(level + 1, db, name);
